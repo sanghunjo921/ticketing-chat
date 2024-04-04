@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Chat App</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script src="socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/socket.js"></script>
+  </head>
+  <body>
+    <div id="messages">
+      <ul id="message-list"></ul>
+    </div>
+    <form id="form">
+      <!-- 텍스트 입력창 옆에 상대방 이름을 표시할 요소를 추가합니다. -->
+      <input id="message-input" autocomplete="off" />
+      <div id="username-next-to-input"></div>
+
+      <button>Send</button>
+    </form>
+    <script>
+      $(document).ready(() => {
+        // 문서가 준비되면
+        const socket = io(); // 소켓 연결
+
+        // 서버로부터 username을 설정하도록 요청합니다.
+        const username = prompt('당신의 이름을 입력해주세요:', '');
+        socket.emit('set_username', username);
+
+        // 채팅 메시지를 받으면 처리합니다.
+        socket.on('chat message', (msg) => {
+          const isCurrentUser = msg.sender === username;
+          const messageContainer = $('<div>').addClass(
+            isCurrentUser ? 'sender' : 'receiver',
+          );
+          const messageElement = $('<span>').addClass('message').text(msg.text);
+
+          // 상대방 채팅 위에 상대방 이름을 표시합니다.
+          if (!isCurrentUser) {
+            const senderNameElement = $('<span>')
+              .addClass('sender-name')
+              .text(msg.sender + ': ');
+            messageContainer.append(senderNameElement);
+          }
+
+          messageContainer.append(messageElement);
+          $('#message-list').append(messageContainer);
+          window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        // 메시지 전송 폼 제출 시
+        $('#form').submit((e) => {
+          e.preventDefault();
+          const message = $('#message-input').val();
+          // 메시지와 보낸이를 서버로 전송합니다.
+          socket.emit('chat message', { text: message, sender: username });
+          $('#message-input').val(''); // 입력창 비움
+          return false;
+        });
+      });
+    </script>
+  </body>
+</html>
